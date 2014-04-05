@@ -3,6 +3,7 @@ package com.badlogic.gdx.tests;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL10;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -25,7 +26,6 @@ import com.badlogic.gdx.physics.box2d.liquidfun.ParticleDebugRenderer;
 import com.badlogic.gdx.physics.box2d.liquidfun.ParticleDef.ParticleType;
 import com.badlogic.gdx.physics.box2d.liquidfun.ParticleGroupDef;
 import com.badlogic.gdx.physics.box2d.liquidfun.ParticleSystem;
-import com.badlogic.gdx.tests.utils.GdxTest;
 
 public class LiquidFunTest extends GdxTest implements InputProcessor {
 	
@@ -70,10 +70,11 @@ public class LiquidFunTest extends GdxTest implements InputProcessor {
 		
 		/* Render stuff */
 		mDebugRenderer = new Box2DDebugRenderer();
-		mParticleDebugRenderer = new ParticleDebugRenderer();
+		mParticleDebugRenderer = new ParticleDebugRenderer(new Color(0, 1, 0, 1), mParticleSystem.getParticleCount());
 		
 		/* Version */
 		Gdx.app.log("Running LiquidFun version", mParticleSystem.getVersionString());
+		updateLog();
 	}
 	
 	private void createBox2DWorld(float width, float height) {
@@ -116,9 +117,9 @@ public class LiquidFunTest extends GdxTest implements InputProcessor {
 	
 	private void createParticleStuff(float width, float height) {
 		//First we create a new particlesystem and 
-		//set the radius of each particle to 8 / 120 m (~6.6 cm)
+		//set the radius of each particle to 6 / 120 m (5 cm)
 		mParticleSystem = new ParticleSystem(mWorld);
-		mParticleSystem.setParticleRadius(8f * WORLD_TO_BOX);
+		mParticleSystem.setParticleRadius(6f * WORLD_TO_BOX);
 		
 		//Create a new particlegroupdefinition and set some properties
 		//For the flags you can set more than only one
@@ -183,11 +184,8 @@ public class LiquidFunTest extends GdxTest implements InputProcessor {
 		cameraCombined.scale(BOX_TO_WORLD, BOX_TO_WORLD, 1);
 		
 		//First render the particles and then the Box2D world
-		mParticleDebugRenderer.render(mParticleSystem, cameraCombined);
+		mParticleDebugRenderer.render(mParticleSystem, BOX_TO_WORLD, cameraCombined);
 		mDebugRenderer.render(mWorld, cameraCombined);
-		
-		//Here we log the total particle count and the f/s
-		Gdx.app.log("", "Total particles: " + mParticleSystem.getParticleCount() + " FPS: " + Gdx.graphics.getFramesPerSecond());
 	}
 	
 	@Override
@@ -202,11 +200,26 @@ public class LiquidFunTest extends GdxTest implements InputProcessor {
 	public void createParticles1(float pX, float pY) {
 		mParticleGroupDef1.position.set(pX * WORLD_TO_BOX, pY * WORLD_TO_BOX);
 		mParticleSystem.createParticleGroup(mParticleGroupDef1);
+		updateParticleCount();
+		updateLog();
 	}
 	
-	public void createParticles2(float pX, float pY) {
+	private void createParticles2(float pX, float pY) {
 		mParticleGroupDef2.position.set(pX * WORLD_TO_BOX, pY * WORLD_TO_BOX);
 		mParticleSystem.createParticleGroup(mParticleGroupDef2);
+		updateParticleCount();
+		updateLog();
+	}
+	
+	private void updateParticleCount() {
+		if(mParticleSystem.getParticleCount() > mParticleDebugRenderer.getMaxParticleNumber()) {
+			mParticleDebugRenderer.setMaxParticleNumber(mParticleSystem.getParticleCount() + 1000);
+		}
+	}
+	
+	public void updateLog() {
+		//Here we log the total particle count and the f/s
+		Gdx.app.log("", "Total particles: " + mParticleSystem.getParticleCount() + " FPS: " + Gdx.graphics.getFramesPerSecond());
 	}
 	
 	public void createCircleBody(float pX, float pY, float pRadius) {
@@ -301,4 +314,6 @@ public class LiquidFunTest extends GdxTest implements InputProcessor {
 			this.createParticles2(x, Gdx.graphics.getHeight() - y);
 		}
 	}
+	
+	
 }

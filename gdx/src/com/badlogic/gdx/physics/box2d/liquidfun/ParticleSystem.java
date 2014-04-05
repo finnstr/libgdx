@@ -186,6 +186,14 @@ public class ParticleSystem {
 		return mPositions;
 	}
 	
+	public float[] getParticlePositionBufferX() {
+		return jniGetParticlePositionBufferX(worldAddr);
+	}
+	
+	public float[] getParticlePositionBufferY() {
+		return jniGetParticlePositionBufferY(worldAddr);
+	}
+	
 	private native float[] jniGetParticlePositionBufferX(long addr); /*
 		b2World* world = (b2World*)addr;
 		int32 count = world->GetParticleCount();
@@ -215,6 +223,27 @@ public class ParticleSystem {
 		
 		env->SetFloatArrayRegion(array, 0, (jsize) count, fill);
 		return array;
+	*/
+	
+	public float[] getParticlePositionBufferArray() {
+		return jniGetParticlePositionBuffer(worldAddr);
+	}
+	
+	private native float[] jniGetParticlePositionBuffer(long addr); /*
+		b2World* world = (b2World*)addr;
+		int32 count = world->GetParticleCount();
+		
+		jfloatArray array;
+		array = env->NewFloatArray((jsize) count * 2);
+		
+		jfloat fill[count * 2];
+		for(int i = 0; i < count * 2; i += 2) {
+			fill[i] = world->GetParticlePositionBuffer()[i / 2].x;
+			fill[i + 1] = world->GetParticlePositionBuffer()[i / 2].y;
+		}
+		
+		env->SetFloatArrayRegion(array, 0, (jsize) count * 2, fill);
+ 		return array;
 	*/
 	
 	private final static Array<Vector2> mVelocities = new Array<Vector2>();
