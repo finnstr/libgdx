@@ -19,6 +19,15 @@ public class ParticleGroup {
 		addr = pAddr;
 	}
 	
+	public void destroyParticlesInGroup() {
+		jniDestroyParticlesInGroup(addr);
+	}
+	
+	private native void jniDestroyParticlesInGroup(long addr); /*
+		b2ParticleGroup* group = (b2ParticleGroup*)addr;
+		group->DestroyParticles();
+	*/
+	
 	public void setUsetData(Object pObject) {
 		userData = pObject;
 	}
@@ -127,5 +136,23 @@ public class ParticleGroup {
 	private native float jniGetAngle(long addr); /*
 		b2ParticleGroup* group = (b2ParticleGroup*)addr;
 		return (jfloat)group->GetAngle();
-	 */ 
+	 */
+	
+	public void applyForce(Vector2 pForce) {
+		jniApplyForce(addr, pForce.x, pForce.y);
+	}
+	
+	private native void jniApplyForce(long addr, float forceX, float forceY); /*
+		b2ParticleGroup* group = (b2ParticleGroup*)addr;
+		group->ApplyForce(b2Vec2(forceX, forceY));
+	*/
+	
+	public void applyLinearImpulse(Vector2 pImpulse) {
+		jniApplyLinearImpulse(addr, pImpulse.x, pImpulse.y);
+	}
+	
+	private native void jniApplyLinearImpulse(long addr, float impulseX, float impulseY); /*
+		b2ParticleGroup* group = (b2ParticleGroup*)addr;
+		group->ApplyLinearImpulse(b2Vec2(impulseX, impulseY));
+	*/
 }

@@ -74,7 +74,12 @@ public class ParticleDebugRenderer {
 		      + "#endif\n" //
 				+ "void main()\n"//
 				+ "{\n" //
-				+ " gl_FragColor = vec4(" + pColor.r + "," + pColor.g + "," + pColor.b + "," + pColor.a + ");\n" //
+				+ " float len = length(vec2(gl_PointCoord.x - 0.5, gl_PointCoord.y - 0.5));\n" //
+				+ " if(len <= 0.5) {\n" //
+				+ " 	gl_FragColor = vec4(" + pColor.r + "," + pColor.g + "," + pColor.b + "," + pColor.a + ");\n" //
+				+ " } else {\n" //
+				+ " 	gl_FragColor = vec4(0, 0, 0, 0);\n" //
+				+ " }\n" //
 				+ "}";
 		
 		ShaderProgram shader = new ShaderProgram(vertexShader,

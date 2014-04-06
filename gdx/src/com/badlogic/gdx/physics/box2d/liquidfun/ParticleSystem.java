@@ -25,14 +25,63 @@ public class ParticleSystem {
 		}
 	};
 	
-	private final long worldAddr;
+	private final long addr;
+	private final World mWorld;
 	
 	/** all known particleGroups **/
 	protected final LongMap<ParticleGroup> particleGroups = new LongMap<ParticleGroup>(100);
 	
-	public ParticleSystem(World pWorld) {	
-		worldAddr = pWorld.getAddress();
+	public ParticleSystem(World pWorld, ParticleSystemDef pDef) {	
+		long worldAddr = pWorld.getAddress();
+		mWorld = pWorld;
+		
+		addr = jniCreateParticleSystem(worldAddr, pDef.radius, pDef.pressureStrength, 
+			pDef.dampingStrength, pDef.elasticStrength, pDef.springStrength, pDef.viscousStrength,
+			pDef.surfaceTensionPressureStrength, pDef.surfaceTensionNormalStrength, pDef.repulsiveStrength,
+			pDef.powderStrength, pDef.ejectionStrength, pDef.staticPressureStrength, 
+			pDef.staticPressureRelaxation, pDef.staticPressureIterations, pDef.colorMixingStrength, pDef.destroyByAge,
+			pDef.lifetimeGranularity);
 	}
+	
+	private native long jniCreateParticleSystem(long worldAddr, float radius, float pressureStrength, 
+		float dampingStrength, float elasticStrength, float springStrength, float viscousStrength,
+		float surfaceTensionPressureStrength, float surfaceTensionNormalStrength, float repulsiveStrength,
+		float powderStrength, float ejectionStrength, float staticPressureStrength, 
+		float staticPressureRelaxation, int staticPressureIterations, float colorMixingStrength, boolean destroyByAge,
+		float lifetimeGranularity); /*
+		b2ParticleSystemDef def;
+		def.radius = radius;
+		def.pressureStrength = pressureStrength;
+		def.dampingStrength = dampingStrength;
+		def.elasticStrength = elasticStrength;
+		def.springStrength = springStrength;
+		def.viscousStrength = viscousStrength;
+		def.surfaceTensionPressureStrength = surfaceTensionPressureStrength;
+		def.surfaceTensionNormalStrength = surfaceTensionNormalStrength;
+		def.repulsiveStrength = repulsiveStrength;
+		def.powderStrength = powderStrength;
+		def.ejectionStrength = ejectionStrength;
+		def.staticPressureStrength = staticPressureStrength;
+		def.staticPressureRelaxation = staticPressureRelaxation;
+		def.staticPressureIterations = staticPressureIterations;
+		def.colorMixingStrength = colorMixingStrength;
+		def.destroyByAge = destroyByAge;
+		def.lifetimeGranularity = lifetimeGranularity;
+		
+		b2World* world = (b2World*)worldAddr;
+		return (jlong)world->CreateParticleSystem(&def);
+	*/
+	
+	public void destroyParticleSystem() {
+		jniDestroyParticleSystem(mWorld.getAddress(), addr);
+	}
+	
+	private native void jniDestroyParticleSystem(long worldAddr, long systemAddr); /*
+		b2World* world = (b2World*)worldAddr;
+		b2ParticleSystem* system = (b2ParticleSystem*)systemAddr;
+		
+		world->DestroyParticleSystem(system);
+	*/
 	
 	/** @return Returns the index of the particle. */
 	public int createParticle(ParticleDef pDef) {
@@ -45,32 +94,49 @@ public class ParticleSystem {
 			}
 		}
 		
-		return jniCreateParticle(worldAddr, flags, pDef.position.x, pDef.position.y, pDef.velocitiy.x, pDef.velocitiy.y,
-			(int) (pDef.color.r * 255f), (int) (pDef.color.g * 255f), (int) (pDef.color.b * 255f), (int) (pDef.color.a * 255f));
+		return jniCreateParticle(addr, flags, pDef.position.x, pDef.position.y, pDef.velocitiy.x, pDef.velocitiy.y,
+			(int) (pDef.color.r * 255f), (int) (pDef.color.g * 255f), (int) (pDef.color.b * 255f), (int) (pDef.color.a * 255f),
+			pDef.lifetime, pDef.group.addr);
 	}
 	
 	private native int jniCreateParticle(long addr, int pFlags, float pPositionX, float pPositionY, float pVelocityX, float pVelocityY, 
-			int pColorR, int pColorG, int pColorB, int pColorA); /*
+			int pColorR, int pColorG, int pColorB, int pColorA, float lifetime, long groupAddr); /*
 		b2ParticleDef particleDef;
 		particleDef.flags = pFlags;
 		particleDef.position.Set( pPositionX, pPositionY );
 		particleDef.velocity.Set( pVelocityX, pVelocityY );
 		particleDef.color.Set(pColorR, pColorG, pColorB, pColorA);
+		particleDef.lifetime = lifetime;
+		particleDef.group = (b2ParticleGroup*)groupAddr;
 		
-		b2World* world = (b2World*)addr;
-		int32 index = world->CreateParticle( particleDef );
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 index = system->CreateParticle( particleDef );
 		return (jint)index;
 	*/
 
 	/** Removes a particle
 	 * @param pIndex The index of the particle given by createParticle() */
 	public void destroyParticle(int pIndex) {
-		jniDestroyParticle(worldAddr, pIndex);
+		jniDestroyParticle(addr, pIndex);
 	}
 	
 	private native void jniDestroyParticle(long addr, int pIndex); /*
-		b2World* world = (b2World*)addr;
-		world->DestroyParticle( pIndex );
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->DestroyParticle( pIndex, false );
+	*/
+	
+	/** Destroy the Nth oldest particle in the system.
+	* The particle is removed after the next b2World::Step().
+	* @param pIndex of the Nth oldest particle to destroy, 0 will destroy the
+	* oldest particle in the system, 1 will destroy the next oldest
+	* particle etc. */
+	public void destroyOldestParticle(int pIndex) {
+		jniDestroyOldestParticle(addr, pIndex);
+	}
+	
+	private native void jniDestroyOldestParticle(long addr, int index); /*
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->DestroyOldestParticle(index, false);
 	*/
 	
 	/** Removes all particles in the bounds of the shape
@@ -78,7 +144,7 @@ public class ParticleSystem {
 	 * @param pTransform transformation of the shape
 	 * @return the number of particles destroyed*/
 	public int destroyParticleInShape(Shape pShape, Transform pTransform) {
-		return jniDestroyParticleInShape(worldAddr, pShape.getAddress(), pTransform.getPosition().x, pTransform.getPosition().y, pTransform.getRotation());
+		return jniDestroyParticleInShape(addr, pShape.getAddress(), pTransform.getPosition().x, pTransform.getPosition().y, pTransform.getRotation());
 	}
 	
 	private native int jniDestroyParticleInShape(long addr, long pShapeAddr, float pTransformPosX, float pTransformPosY, float pAngle); /*
@@ -86,8 +152,8 @@ public class ParticleSystem {
 		b2Transform transform;
 		transform.Set( b2Vec2( pTransformPosX, pTransformPosY ), pAngle );
 		
-		b2World* world = (b2World*)addr;
-		return (jint)world->DestroyParticlesInShape( *shape, transform );
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jint)system->DestroyParticlesInShape( *shape, transform, false );
 	*/
 
 	public ParticleGroup createParticleGroup(ParticleGroupDef pGroupDef) {
@@ -109,10 +175,20 @@ public class ParticleSystem {
 			}
 		}
 		
-		long addrParticleGroup = jniCreateParticleGroup(worldAddr, flags, groupFlags, pGroupDef.position.x, pGroupDef.position.y, pGroupDef.angle,
+		float positionDataX = 0;
+		float positionDataY = 0;
+		boolean positionDataSet = pGroupDef.positionData != null;
+		if(positionDataSet) {
+			positionDataX = pGroupDef.positionData.x;
+			positionDataY = pGroupDef.positionData.y;
+		}
+		
+		long addrParticleGroup = jniCreateParticleGroup(addr, flags, groupFlags, pGroupDef.position.x, pGroupDef.position.y, pGroupDef.angle,
 				pGroupDef.linearVelocity.x, pGroupDef.linearVelocity.y, pGroupDef.angularVelocity, 
-				(int) (pGroupDef.color.r * 255f), (int) (pGroupDef.color.g * 255f), (int) (pGroupDef.color.b * 255f), (int) (pGroupDef.color.a * 255f),
-				pGroupDef.strength, pGroupDef.shape.getAddress(), pGroupDef.destroyAutomatically);
+				(int) (pGroupDef.color.r * 255f), (int) (pGroupDef.color.g * 255f), 
+				(int) (pGroupDef.color.b * 255f), (int) (pGroupDef.color.a * 255f),
+				pGroupDef.strength, pGroupDef.shape.getAddress(), pGroupDef.stride, pGroupDef.particleCount, positionDataSet,
+				positionDataX, positionDataY, pGroupDef.lifetime, pGroupDef.group == null ? -1 : pGroupDef.group.addr);
 		
 		ParticleGroup group = freeParticleGroups.obtain();
 		group.addr = addrParticleGroup;
@@ -120,8 +196,11 @@ public class ParticleSystem {
 		return group;
 	}
 	
-	private native long jniCreateParticleGroup(long addr, int pFlags, int pGroupFlags, float pPositionX, float pPositionY, float pAngle, float pLinVelocityX, float pLinVelocityY, 
-			float pAngularVelocity, int pColorR, int pColorG, int pColorB, int pColorA, float pStrength, long pShapeAddr, boolean pDestroyAutomatically); /*
+	private native long jniCreateParticleGroup(long addr, int pFlags, int pGroupFlags, float pPositionX, 
+		float pPositionY, float pAngle, float pLinVelocityX, float pLinVelocityY, 
+		float pAngularVelocity, int pColorR, int pColorG, int pColorB, int pColorA, 
+		float pStrength, long pShapeAddr, float stride, int particleCount, boolean positionDataSet, 
+		float positionDataX, float positionDataY, float lifetime, long groupAddr); /*
 		b2ParticleGroupDef groupDef;
 		groupDef.flags = pFlags;
 		groupDef.groupFlags = pGroupFlags;
@@ -132,50 +211,36 @@ public class ParticleSystem {
 		groupDef.color.Set( pColorR, pColorG, pColorB, pColorA );
 		groupDef.strength = pStrength;
 		groupDef.shape = (b2Shape*)pShapeAddr;
-		groupDef.destroyAutomatically = pDestroyAutomatically;
+		groupDef.stride = stride;
+		groupDef.particleCount = particleCount;
+		groupDef.lifetime = lifetime;
 		
-		b2World* world = (b2World*)addr;
-		return (jlong)world->CreateParticleGroup( groupDef );
-	*/
-
-	public void destroyParticlesInGroup(ParticleGroup pGroup) {
-		jniDestroyParticlesInGroup(worldAddr, pGroup.addr);
-	}
-	
-	private native void jniDestroyParticlesInGroup(long addr, long groupAddr); /*
-		b2ParticleGroup* group = (b2ParticleGroup*)groupAddr;
-	
-		b2World* world = (b2World*)addr;
-		world->DestroyParticlesInGroup( group );
+		if(positionDataSet) {
+			const b2Vec2 positionData = b2Vec2(positionDataX, positionDataY);
+			groupDef.positionData = &positionData;
+		}
+		
+		if(groupAddr != -1) {
+			groupDef.group = (b2ParticleGroup*)groupAddr;
+		}
+		
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jlong)system->CreateParticleGroup( groupDef );
 	*/
 	
 	/** Join two particle groups. This function is locked during callbacks.
 	 * @param pGroupA first group. Expands to encompass the second group.
 	 * @param pGroupB second group. It is destroyed. */
 	public void joinParticleGroups(ParticleGroup pGroupA, ParticleGroup pGroupB) {
-		jniJoinParticleGroups(worldAddr, pGroupA.addr, pGroupB.addr);
+		jniJoinParticleGroups(addr, pGroupA.addr, pGroupB.addr);
 	}
 	
 	private native void jniJoinParticleGroups(long addr, long addrA, long addrB); /*
 		b2ParticleGroup* groupA = (b2ParticleGroup*)addrA;
 		b2ParticleGroup* groupB = (b2ParticleGroup*)addrB;
 	
-		b2World* world = (b2World*)addr;
-		world->JoinParticleGroups( groupA, groupB );
-	*/
-	
-	public void destroyParticleGroup(ParticleGroup pGroup) {
-		pGroup.setUsetData(null);
-		this.particleGroups.remove(pGroup.addr);
-		jniDestroyParticleGroup(worldAddr, pGroup.addr);
-		freeParticleGroups.free(pGroup);
-	}
-	
-	private native void jniDestroyParticleGroup(long addr, long groupAddr); /*
-		b2ParticleGroup* group = (b2ParticleGroup*)groupAddr;
-	
-		b2World* world = (b2World*)addr;
-		world->DestroyParticlesInGroup( group );
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->JoinParticleGroups( groupA, groupB );
 	*/
 
 	private final static Array<Vector2> mPositions = new Array<Vector2>();
@@ -187,38 +252,38 @@ public class ParticleSystem {
 	}
 	
 	public float[] getParticlePositionBufferX() {
-		return jniGetParticlePositionBufferX(worldAddr);
+		return jniGetParticlePositionBufferX(addr);
 	}
 	
 	public float[] getParticlePositionBufferY() {
-		return jniGetParticlePositionBufferY(worldAddr);
+		return jniGetParticlePositionBufferY(addr);
 	}
 	
 	private native float[] jniGetParticlePositionBufferX(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count = system->GetParticleCount();
 		
 		jfloatArray array;
 		array = env->NewFloatArray((jsize) count);
 		
 		jfloat fill[count];
 		for(int i = 0; i < count; i++) {
-			fill[i] = world->GetParticlePositionBuffer()[i].x;
+			fill[i] = system->GetPositionBuffer()[i].x;
 		}
 		
 		env->SetFloatArrayRegion(array, 0, (jsize) count, fill);
  		return array;
 	*/
 	private native float[] jniGetParticlePositionBufferY(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count =  system->GetParticleCount();
 		
 		jfloatArray array;
 		array = env->NewFloatArray((jsize) count);
 		
 		jfloat fill[count];
 		for(int i = 0; i < count; i++) {
-			fill[i] = world->GetParticlePositionBuffer()[i].y;
+			fill[i] = system->GetPositionBuffer()[i].y;
 		}
 		
 		env->SetFloatArrayRegion(array, 0, (jsize) count, fill);
@@ -226,20 +291,20 @@ public class ParticleSystem {
 	*/
 	
 	public float[] getParticlePositionBufferArray() {
-		return jniGetParticlePositionBuffer(worldAddr);
+		return jniGetParticlePositionBuffer(addr);
 	}
 	
 	private native float[] jniGetParticlePositionBuffer(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count = system->GetParticleCount();
 		
 		jfloatArray array;
 		array = env->NewFloatArray((jsize) count * 2);
 		
 		jfloat fill[count * 2];
 		for(int i = 0; i < count * 2; i += 2) {
-			fill[i] = world->GetParticlePositionBuffer()[i / 2].x;
-			fill[i + 1] = world->GetParticlePositionBuffer()[i / 2].y;
+			fill[i] = system->GetPositionBuffer()[i / 2].x;
+			fill[i + 1] = system->GetPositionBuffer()[i / 2].y;
 		}
 		
 		env->SetFloatArrayRegion(array, 0, (jsize) count * 2, fill);
@@ -255,30 +320,30 @@ public class ParticleSystem {
 	}
 	
 	private native float[] jniGetParticleVelocityBufferX(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count = system->GetParticleCount();
 		
 		jfloatArray array;
 		array = env->NewFloatArray((jsize) count);
 		
 		jfloat fill[count];
 		for(int i = 0; i < count; i++) {
-			fill[i] = world->GetParticleVelocityBuffer()[i].x;
+			fill[i] = system->GetVelocityBuffer()[i].x;
 		}
 		
 		env->SetFloatArrayRegion(array, 0, (jsize) count, fill);
  		return array;
 	*/
 	private native float[] jniGetParticleVelocityBufferY(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count = system->GetParticleCount();
 		
 		jfloatArray array;
 		array = env->NewFloatArray((jsize) count);
 		
 		jfloat fill[count];
 		for(int i = 0; i < count; i++) {
-			fill[i] = world->GetParticleVelocityBuffer()[i].y;
+			fill[i] = system->GetVelocityBuffer()[i].y;
 		}
 		
 		env->SetFloatArrayRegion(array, 0, (jsize) count, fill);
@@ -294,15 +359,15 @@ public class ParticleSystem {
 	}
 	
 	private native int[] jniGetParticleColorBufferR(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count = system->GetParticleCount();
 		
 		jintArray array;
 		array = env->NewIntArray((jsize) count);
 		
 		jint fill[count];
 		for(int i = 0; i < count; i++) {
-			fill[i] = world->GetParticleColorBuffer()[i].r;
+			fill[i] = system->GetColorBuffer()[i].r;
 		}
 		
 		env->SetIntArrayRegion(array, 0, (jsize) count, fill);
@@ -310,15 +375,15 @@ public class ParticleSystem {
 	*/
 	
 	private native int[] jniGetParticleColorBufferG(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count = system->GetParticleCount();
 		
 		jintArray array;
 		array = env->NewIntArray((jsize) count);
 		
 		jint fill[count];
 		for(int i = 0; i < count; i++) {
-			fill[i] = world->GetParticleColorBuffer()[i].g;
+			fill[i] = system->GetColorBuffer()[i].g;
 		}
 		
 		env->SetIntArrayRegion(array, 0, (jsize) count, fill);
@@ -326,15 +391,15 @@ public class ParticleSystem {
 	*/
 	
 	private native int[] jniGetParticleColorBufferB(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count = system->GetParticleCount();
 		
 		jintArray array;
 		array = env->NewIntArray((jsize) count);
 		
 		jint fill[count];
 		for(int i = 0; i < count; i++) {
-			fill[i] = world->GetParticleColorBuffer()[i].b;
+			fill[i] = system->GetColorBuffer()[i].b;
 		}
 		
 		env->SetIntArrayRegion(array, 0, (jsize) count, fill);
@@ -342,15 +407,15 @@ public class ParticleSystem {
 	*/
 	
 	private native int[] jniGetParticleColorBufferA(long addr); /*
-		b2World* world = (b2World*)addr;
-		int32 count = world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		int32 count = system->GetParticleCount();
 		
 		jintArray array;
 		array = env->NewIntArray((jsize) count);
 		
 		jint fill[count];
 		for(int i = 0; i < count; i++) {
-			fill[i] = world->GetParticleColorBuffer()[i].a;
+			fill[i] = system->GetColorBuffer()[i].a;
 		}
 		
 		env->SetIntArrayRegion(array, 0, (jsize) count, fill);
@@ -362,8 +427,8 @@ public class ParticleSystem {
 		mPositions.ensureCapacity(getParticleCount());
 		mPositions.clear();
 		
-		float[] x = jniGetParticlePositionBufferX(worldAddr);
-		float[] y = jniGetParticlePositionBufferY(worldAddr);
+		float[] x = jniGetParticlePositionBufferX(addr);
+		float[] y = jniGetParticlePositionBufferY(addr);
 		
 		for(int i = 0; i < getParticleCount(); i++) {
 			mPositions.add(new Vector2(x[i], y[i]));
@@ -375,8 +440,8 @@ public class ParticleSystem {
 		mVelocities.ensureCapacity(getParticleCount());
 		mVelocities.clear();
 		
-		float[] x = jniGetParticleVelocityBufferX(worldAddr);
-		float[] y = jniGetParticleVelocityBufferY(worldAddr);
+		float[] x = jniGetParticleVelocityBufferX(addr);
+		float[] y = jniGetParticleVelocityBufferY(addr);
 		
 		for(int i = 0; i < getParticleCount(); i++) {
 			mVelocities.add(new Vector2(x[i], y[i]));
@@ -388,10 +453,10 @@ public class ParticleSystem {
 		mColors.ensureCapacity(getParticleCount());
 		mColors.clear();
 		
-		int[] r = jniGetParticleColorBufferR(worldAddr);
-		int[] g = jniGetParticleColorBufferG(worldAddr);
-		int[] b = jniGetParticleColorBufferB(worldAddr);
-		int[] a = jniGetParticleColorBufferA(worldAddr);
+		int[] r = jniGetParticleColorBufferR(addr);
+		int[] g = jniGetParticleColorBufferG(addr);
+		int[] b = jniGetParticleColorBufferB(addr);
+		int[] a = jniGetParticleColorBufferA(addr);
 		
 		for(int i = 0; i < getParticleCount(); i++) {
 			mColors.add(new Color(r[i] / 255f, g[i] / 255f, b[i] / 255f, a[i] / 255f));
@@ -421,111 +486,142 @@ public class ParticleSystem {
 	}
 	
 	public void setParticleRadius(float pRadius) {
-		jniSetParticleRadius(worldAddr, pRadius);
+		jniSetParticleRadius(addr, pRadius);
 	}
 	
 	private native void jniSetParticleRadius(long addr, float pRadius); /*
-		b2World* world = (b2World*)addr;
-		world->SetParticleRadius( pRadius );
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->SetRadius( pRadius );
 	*/
 	
 	public float getParticleRadius() {
-		return jniGetParticleRadius(worldAddr);
+		return jniGetParticleRadius(addr);
 	}
 	
 	private native float jniGetParticleRadius(long addr); /*
-		b2World* world = (b2World*)addr;
-		return (jfloat)world->GetParticleRadius();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jfloat)system->GetRadius();
 	*/
 	
 	/** The total count of particles currently in the simulation */
 	public int getParticleCount() {
-		return jniGetParticleCount(worldAddr);
+		return jniGetParticleCount(addr);
 	}
 	
 	private native int jniGetParticleCount(long addr); /*
-		b2World* world = (b2World*)addr;
-		return (jint)world->GetParticleCount();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jint)system->GetParticleCount();
+	*/
+	
+	public int getParticleGroupCount() {
+		return jniGetParticleGroupCount(addr);
+	}
+	
+	private native int jniGetParticleGroupCount(long addr); /*
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jint)system->GetParticleGroupCount();
+	*/
+	
+	/** Pause or unpause the particle system. When paused, b2World::Step()
+	* skips over this particle system. All b2ParticleSystem function calls
+	* still work.
+	* @param pPaused is true to pause, false to un-pause. */
+	public void setPaused(boolean pPaused) {
+		jniSetPaused(addr, pPaused);
+	}
+	
+	private native void jniSetPaused(long addr, boolean paused); /*
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->SetPaused(paused);
+	*/
+	
+	public boolean getPaused() {
+		return jniGetPaused(addr);
+	}
+	
+	private native boolean jniGetPaused(long addr); /*
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jboolean)system->GetPaused();
 	*/
 	
 	public void setParticleDensity(float pDensity) {
-		jniSetParticleDensity(worldAddr, pDensity);
+		jniSetParticleDensity(addr, pDensity);
 	}
 	
 	private native void jniSetParticleDensity(long addr, float pDensity); /*
-		b2World* world = (b2World*)addr;
-		world->SetParticleDensity(pDensity);
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->SetDensity(pDensity);
 	*/
 	
 	public float getParticleDensity() {
-		return jniGetParticleDensity(worldAddr);
+		return jniGetParticleDensity(addr);
 	}
 	
 	private native float jniGetParticleDensity(long addr); /*
-		b2World* world = (b2World*)addr;
-		return (jfloat)world->GetParticleDensity();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jfloat)system->GetDensity();
 	*/
 	
 	public void setParticleGravityScale(float pGravityScale) {
-		jniSetParticleGravityScale(worldAddr, pGravityScale);
+		jniSetParticleGravityScale(addr, pGravityScale);
 	}
 	
-	private native float jniSetParticleGravityScale(long addr, float pGravityScale); /*
-		b2World* world = (b2World*)addr;
-		world->SetParticleGravityScale(pGravityScale);
+	private native void jniSetParticleGravityScale(long addr, float pGravityScale); /*
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->SetGravityScale(pGravityScale);
 	*/
 	
 	public float getParticleGravityScale() {
-		return jniGetParticleGravityScale(worldAddr);
+		return jniGetParticleGravityScale(addr);
 	}
 	
 	private native float jniGetParticleGravityScale(long addr); /*
-		b2World* world = (b2World*)addr;
-		return (jfloat)world->GetParticleGravityScale();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jfloat)system->GetGravityScale();
 	*/
 	
 	public void setParticleMaxCount(int pCount) {
-		jniSetParticleMaxCount(worldAddr, pCount);
+		jniSetParticleMaxCount(addr, pCount);
 	}
 	
 	private native void jniSetParticleMaxCount(long addr, float pCount); /*
-		b2World* world = (b2World*)addr;
-		world->SetParticleMaxCount(pCount);
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->SetMaxParticleCount(pCount);
 	*/
 	
-	public float getParticleMaxCount() {
-		return jniGetParticleMaxCount(worldAddr);
+	public float getMaxParticleCount() {
+		return jniGetMaxParticleCount(addr);
 	}
 	
-	private native float jniGetParticleMaxCount(long addr); /*
-		b2World* world = (b2World*)addr;
-		return (jint)world->GetParticleMaxCount();
+	private native float jniGetMaxParticleCount(long addr); /*
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jint)system->GetMaxParticleCount();
 	*/
 	
 	public void setParticleDamping(float pDamping) {
-		jniSetParticleDamping(worldAddr, pDamping);
+		jniSetParticleDamping(addr, pDamping);
 	}
 	
 	private native void jniSetParticleDamping(long addr, float pDamping); /*
-		b2World* world = (b2World*)addr;
-		world->SetParticleDamping(pDamping);
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		system->SetDamping(pDamping);
 	*/
 	
 	public float getParticleDamping() {
-		return jniGetParticleDamping(worldAddr);
+		return jniGetParticleDamping(addr);
 	}
 	
 	private native float jniGetParticleDamping(long addr); /*
-		b2World* world = (b2World*)addr;
-		return (jfloat)world->GetParticleDamping();
+		b2ParticleSystem* system = (b2ParticleSystem*)addr;
+		return (jfloat)system->GetDamping();
 	*/
 	
 	public String getVersionString() {
-		return jniGetVersionString(worldAddr);
+		return jniGetVersionString(mWorld.getAddress());
 	}
-	
-	private native String jniGetVersionString(long addr); /*
-		b2World* world = (b2World*)addr;
+
+	private native String jniGetVersionString(long worldAddr); /*
+		b2World* world = (b2World*)worldAddr;
 		const char* version = world->GetVersionString();
 		return env->NewStringUTF(version);
 	*/

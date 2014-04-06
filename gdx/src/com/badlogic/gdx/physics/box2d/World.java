@@ -921,17 +921,6 @@ b2ContactFilter defaultFilter;
 		else
 			return false;
 	}
-
-	/** Sets the box2d velocity threshold globally, for all World instances.
-	 * @param threshold the threshold, default 1.0f */
-	public static native void setVelocityThreshold (float threshold); /*
-		b2_velocityThreshold = threshold;
-	*/
-
-	/** @return the global box2d velocity threshold. */
-	public static native float getVelocityThreshold (); /*
-		return b2_velocityThreshold;
-	*/
 	
 	/** Ray-cast the world for all fixtures in the path of the ray. The ray-cast ignores shapes that contain the starting point.
 	 * @param callback a user implemented callback class.

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2006-2009 Erin Catto http://www.box2d.org
+* Copyright (c) 2013 Google, Inc.
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -15,41 +15,53 @@
 * misrepresented as being the original software.
 * 3. This notice may not be removed or altered from any source distribution.
 */
+#include "b2Stat.h"
 
-#ifndef B2_CONTACT_MANAGER_H
-#define B2_CONTACT_MANAGER_H
+#include <algorithm>
+#include <cfloat>
 
-#include <Box2D/Collision/b2BroadPhase.h>
-
-class b2Contact;
-class b2ContactFilter;
-class b2ContactListener;
-class b2BlockAllocator;
-class b2ParticleSystem;
-
-// Delegate of b2World.
-class b2ContactManager
+b2Stat::b2Stat()
 {
-public:
-	friend class b2ParticleSystem;
+	Clear();
+}
 
-	b2ContactManager();
+void b2Stat::Record( float32 t )
+{
+	m_total += t;
+	m_min = std::min(m_min,t);
+	m_max = std::max(m_max,t);
+	m_count++;
+}
 
-	// Broad-phase callback.
-	void AddPair(void* proxyUserDataA, void* proxyUserDataB);
+int b2Stat::GetCount() const
+{
+	return m_count;
+}
 
-	void FindNewContacts();
+float32 b2Stat::GetMean() const
+{
+	if (m_count == 0)
+	{
+		return 0.0f;
+	}
+	return (float32)(m_total / m_count);
+}
 
-	void Destroy(b2Contact* c);
+float32 b2Stat::GetMin() const
+{
+	return m_min;
+}
 
-	void Collide();
-            
-	b2BroadPhase m_broadPhase;
-	b2Contact* m_contactList;
-	int32 m_contactCount;
-	b2ContactFilter* m_contactFilter;
-	b2ContactListener* m_contactListener;
-	b2BlockAllocator* m_allocator;
-};
+float32 b2Stat::GetMax() const
+{
+	return m_max;
+}
 
-#endif
+void b2Stat::Clear()
+{
+	m_count = 0;
+	m_total = 0;
+	m_min = FLT_MAX;
+	m_max = -FLT_MAX;
+}
+

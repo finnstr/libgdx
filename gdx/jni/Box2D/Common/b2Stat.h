@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2006-2009 Erin Catto http://www.box2d.org
+* Copyright (c) 2013 Google, Inc.
 *
 * This software is provided 'as-is', without any express or implied
 * warranty.  In no event will the authors be held liable for any damages
@@ -15,47 +15,43 @@
 * misrepresented as being the original software.
 * 3. This notice may not be removed or altered from any source distribution.
 */
-
-#ifndef B2_STACK_ALLOCATOR_H
-#define B2_STACK_ALLOCATOR_H
+#ifndef B2_STAT
+#define B2_STAT
 
 #include <Box2D/Common/b2Settings.h>
 
-const int32 b2_stackSize = 100 * 1024;	// 100k
-const int32 b2_maxStackEntries = 32;
-
-struct b2StackEntry
-{
-	char* data;
-	int32 size;
-	bool usedMalloc;
-};
-
-// This is a stack allocator used for fast per step allocations.
-// You must nest allocate/free pairs. The code will assert
-// if you try to interleave multiple allocate/free pairs.
-class b2StackAllocator
+/// Calculates min/max/mean of a set of samples
+class b2Stat
 {
 public:
-	b2StackAllocator();
-	~b2StackAllocator();
+	b2Stat();
 
-	void* Allocate(int32 size);
-	void* Reallocate(void* p, int32 size);
-	void Free(void* p);
+	/// Record a sample
+	void Record( float32 t );
 
-	int32 GetMaxAllocation() const;
+	/// Returns the number of recorded samples
+	int GetCount() const;
 
+	/// Returns the mean of all recorded samples,
+	/// Returns 0 if there are no recorded samples
+	float32 GetMean() const;
+
+	/// Returns the min of all recorded samples,
+	/// FLT_MAX if there are no recorded samples
+	float32 GetMin() const;
+
+	/// Returns the max of all recorded samples,
+	/// -FLT_MAX if there are no recorded samples
+	float32 GetMax() const;
+
+	/// Erase all recorded samples
+	void Clear();
 private:
 
-	char m_data[b2_stackSize];
-	int32 m_index;
-
-	int32 m_allocation;
-	int32 m_maxAllocation;
-
-	b2StackEntry m_entries[b2_maxStackEntries];
-	int32 m_entryCount;
+	int m_count;
+	float64 m_total;
+	float32 m_min;
+	float32 m_max;
 };
 
 #endif

@@ -46,6 +46,7 @@ public class GdxBuild {
 		win32home.excludeFromMasterBuildFile = true;
 		win32home.cppExcludes = excludeCpp;
 		BuildTarget win32 = BuildTarget.newDefaultTarget(TargetOs.Windows, false);
+		win32.compilerPrefix = "mingw32-";
 		win32.cppExcludes = excludeCpp;
 		BuildTarget win64 = BuildTarget.newDefaultTarget(TargetOs.Windows, true);
 		win64.cppExcludes = excludeCpp;
@@ -67,5 +68,12 @@ public class GdxBuild {
 		// build natives
 		// BuildExecutor.executeAnt("jni/build-windows32home.xml", "-v");
 		// BuildExecutor.executeAnt("jni/build.xml", "pack-natives -v");
+		//BuildExecutor.executeAnt("jni/build-linux32.xml", "-v -Dhas-compiler=true clean postcompile");
+		
+		BuildExecutor.executeAnt("jni/build-windows32.xml", "-v -Dhas-compiler=true clean postcompile");
+		BuildExecutor.executeAnt("jni/build-windows64.xml", "-v -Dhas-compiler=true clean postcompile");
+		BuildExecutor.executeNdk("C:/Development/Android/android-ndk-r9c", ".cmd", "jni/build-android32.xml");
+		BuildExecutor.executeAnt("jni/build.xml", "pack-natives -v -Dhas-compiler=true");
+		//cd C:\Users\Finn\Documents\GitHub\libgdx
 	}
 }
