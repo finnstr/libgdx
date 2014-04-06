@@ -26,6 +26,7 @@ import com.badlogic.gdx.physics.box2d.liquidfun.ParticleDebugRenderer;
 import com.badlogic.gdx.physics.box2d.liquidfun.ParticleDef.ParticleType;
 import com.badlogic.gdx.physics.box2d.liquidfun.ParticleGroupDef;
 import com.badlogic.gdx.physics.box2d.liquidfun.ParticleSystem;
+import com.badlogic.gdx.physics.box2d.liquidfun.ParticleSystemDef;
 
 public class LiquidFunTest extends GdxTest implements InputProcessor {
 	
@@ -118,14 +119,18 @@ public class LiquidFunTest extends GdxTest implements InputProcessor {
 	private void createParticleStuff(float width, float height) {
 		//First we create a new particlesystem and 
 		//set the radius of each particle to 6 / 120 m (5 cm)
-		mParticleSystem = new ParticleSystem(mWorld);
-		mParticleSystem.setParticleRadius(6f * WORLD_TO_BOX);
+		ParticleSystemDef systemDef = new ParticleSystemDef();
+		systemDef.radius = 6f * WORLD_TO_BOX;
+		systemDef.dampingStrength = 0.2f;
+		
+		mParticleSystem = new ParticleSystem(mWorld, systemDef);
+		mParticleSystem.setParticleDensity(1.3f);
 		
 		//Create a new particlegroupdefinition and set some properties
 		//For the flags you can set more than only one
 		mParticleGroupDef1 = new ParticleGroupDef();
 		mParticleGroupDef1.color.set(1f, 0, 0, 1);
-		mParticleGroupDef1.flags.add(ParticleType.ColorMixingParticle);
+		mParticleGroupDef1.flags.add(ParticleType.b2_waterParticle);
 		mParticleGroupDef1.position.set(width * (30f / 100f) * WORLD_TO_BOX, height * (80f / 100f) * WORLD_TO_BOX);
 		
 		//Create a shape, give it to the definition and
