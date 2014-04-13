@@ -24,6 +24,7 @@ public class ParticleDebugRenderer {
 	}
 
 	public void setMaxParticleNumber(int pCount) {
+		mMesh.dispose();
 		mMesh = new Mesh(false, pCount, pCount, new VertexAttribute(Usage.Position, 2, ShaderProgram.POSITION_ATTRIBUTE));
 	}
 	
@@ -42,7 +43,7 @@ public class ParticleDebugRenderer {
 		mShader.setUniformf("scale", pRadiusScale);
 		mShader.setUniformMatrix("u_projTrans", pProjMatrix);
 		
-		mMesh.setVertices(pSystem.getParticlePositionBufferArray());
+		mMesh.setVertices(pSystem.getParticlePositionBufferArray(true));
 		mMesh.render(mShader, GL20.GL_POINTS, 0, pSystem.getParticleCount());
 		mShader.end();
 		Gdx.gl20.glDisable(GL11.GL_POINT_SPRITE_OES);

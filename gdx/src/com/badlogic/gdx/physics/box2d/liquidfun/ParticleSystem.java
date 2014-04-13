@@ -94,20 +94,23 @@ public class ParticleSystem {
 			}
 		}
 		
+		boolean addToGroup = true;
+		if(pDef.group == null) addToGroup = false;
+		
 		return jniCreateParticle(addr, flags, pDef.position.x, pDef.position.y, pDef.velocitiy.x, pDef.velocitiy.y,
 			(int) (pDef.color.r * 255f), (int) (pDef.color.g * 255f), (int) (pDef.color.b * 255f), (int) (pDef.color.a * 255f),
-			pDef.lifetime, pDef.group.addr);
+			pDef.lifetime, addToGroup, addToGroup ? pDef.group.addr : -1);
 	}
 	
 	private native int jniCreateParticle(long addr, int pFlags, float pPositionX, float pPositionY, float pVelocityX, float pVelocityY, 
-			int pColorR, int pColorG, int pColorB, int pColorA, float lifetime, long groupAddr); /*
+			int pColorR, int pColorG, int pColorB, int pColorA, float lifetime, boolean addToGroup, long groupAddr); /*
 		b2ParticleDef particleDef;
 		particleDef.flags = pFlags;
 		particleDef.position.Set( pPositionX, pPositionY );
 		particleDef.velocity.Set( pVelocityX, pVelocityY );
 		particleDef.color.Set(pColorR, pColorG, pColorB, pColorA);
 		particleDef.lifetime = lifetime;
-		particleDef.group = (b2ParticleGroup*)groupAddr;
+		if(addToGroup) particleDef.group = (b2ParticleGroup*)groupAddr;
 		
 		b2ParticleSystem* system = (b2ParticleSystem*)addr;
 		int32 index = system->CreateParticle( particleDef );
@@ -290,25 +293,30 @@ public class ParticleSystem {
 		return array;
 	*/
 	
-	public float[] getParticlePositionBufferArray() {
-		return jniGetParticlePositionBuffer(addr);
+	private float[] positionBufferArray = new float[0];
+	
+	public float[] getParticlePositionBufferArray(boolean update) {
+		if(!update) return positionBufferArray;
+		int particleCount = getParticleCount();
+		
+		if(positionBufferArray.length != particleCount * 2) {
+			positionBufferArray = new float[particleCount * 2];
+		}
+		
+		jniUpdateParticlePositionBuffer(addr, positionBufferArray);
+		return positionBufferArray;
 	}
 	
-	private native float[] jniGetParticlePositionBuffer(long addr); /*
+	private native void jniUpdateParticlePositionBuffer(long addr, float[] buffer); /*
 		b2ParticleSystem* system = (b2ParticleSystem*)addr;
 		int32 count = system->GetParticleCount();
 		
 		jfloatArray array;
-		array = env->NewFloatArray((jsize) count * 2);
 		
-		jfloat fill[count * 2];
 		for(int i = 0; i < count * 2; i += 2) {
-			fill[i] = system->GetPositionBuffer()[i / 2].x;
-			fill[i + 1] = system->GetPositionBuffer()[i / 2].y;
+			buffer[i] = system->GetPositionBuffer()[i / 2].x;
+			buffer[i + 1] = system->GetPositionBuffer()[i / 2].y;
 		}
-		
-		env->SetFloatArrayRegion(array, 0, (jsize) count * 2, fill);
- 		return array;
 	*/
 	
 	private final static Array<Vector2> mVelocities = new Array<Vector2>();

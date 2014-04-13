@@ -89,11 +89,11 @@ JNIEXPORT jfloatArray JNICALL Java_com_badlogic_gdx_physics_box2d_liquidfun_Part
 
 /*
  * Class:     com_badlogic_gdx_physics_box2d_liquidfun_ParticleSystem
- * Method:    jniGetParticlePositionBuffer
- * Signature: (J)[F
+ * Method:    jniUpdateParticlePositionBuffer
+ * Signature: (J[F)V
  */
-JNIEXPORT jfloatArray JNICALL Java_com_badlogic_gdx_physics_box2d_liquidfun_ParticleSystem_jniGetParticlePositionBuffer
-  (JNIEnv *, jobject, jlong);
+JNIEXPORT void JNICALL Java_com_badlogic_gdx_physics_box2d_liquidfun_ParticleSystem_jniUpdateParticlePositionBuffer
+  (JNIEnv *, jobject, jlong, jfloatArray);
 
 /*
  * Class:     com_badlogic_gdx_physics_box2d_liquidfun_ParticleSystem
