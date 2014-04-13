@@ -1,3 +1,6 @@
+## Liquid Fun and Lua support for libgdx
+This repository implements Liquid Fun 1.0.0 and LuaJava into libgdx. Builds for android and windows projects are available in the builds folder. Please see `libgdx/builds/`.
+
 ![logo](http://libgdx.badlogicgames.com/img/logo.png)
 
 *We just migrated our Wiki to Github, so it's a little bit rough, we'll fix things up in the next days*
